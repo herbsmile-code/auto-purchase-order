@@ -1,0 +1,18 @@
+[project]
+name = "auto-purchase-order"
+version = "0.1.0"
+description = "카카오톡 주문 원버튼 발주서 및 ERP 연동 자동화 시스템"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "fastapi>=0.100.0",
+    "uvicorn[standard]>=0.22.0",
+    "openpyxl>=3.1.2",
+    "pandas>=2.0.0",
+    "python-multipart>=0.0.6",
+    "pydantic>=2.0.0",
+    "httpx>=0.24.0",
+]
+
+[tool.uv]
+package = false

@@ -1,0 +1,40 @@
+{
+  "naverworks": {
+    "smtp_server": "smtp.worksmobile.com",
+    "smtp_port": 465,
+    "use_ssl": true,
+    "sender_email": "",
+    "sender_password": "",
+    "sender_name": "발주담당자"
+  },
+  "company_info": {
+    "company_name": "(주)바이브컴퍼니",
+    "sender_name": "발주팀 담당자",
+    "phone": "010-1234-5678",
+    "email": "order@vibecompany.com"
+  },
+  "default_mail_template": {
+    "subject": "[발주서] {vendor_name} 귀하 - {date} 발주 건 ({item_summary})",
+    "body": "안녕하세요, {vendor_name} 담당자님.\n\n요청드린 발주서 첨부하여 전달드립니다.\n첨부파일(엑셀 발주서) 확인 부탁드리며, 납기 일정에 맞춰 제작 및 배송 진행 부탁드립니다.\n\n■ 발주일자: {date}\n■ 주요품목: {item_summary}\n■ 수령인: {recipient_name} ({recipient_phone})\n■ 배송지: {recipient_address}\n\n감사합니다.\n\n{company_name} {sender_name} 드림"
+  },
+  "vendors": [
+    {
+      "name": "인쇄나라",
+      "email": "order@printnara.example.com",
+      "contact_person": "김실장",
+      "phone": "02-123-4567"
+    },
+    {
+      "name": "한빛지류",
+      "email": "hanbit@paper.example.com",
+      "contact_person": "이팀장",
+      "phone": "010-9999-8888"
+    },
+    {
+      "name": "동서제본",
+      "email": "dongseo@binding.example.com",
+      "contact_person": "박과장",
+      "phone": "031-456-7890"
+    }
+  ]
+}
