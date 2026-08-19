@@ -15,9 +15,11 @@ ENV/
 .uv/
 
 # Local Output & Temp
-output/orders/*.xlsx
+output/orders/*
+output/erp_upload_list_*.xlsx
 output/temp/
 *.log
+inspect_files.py
 
 # IDE
 .vscode/

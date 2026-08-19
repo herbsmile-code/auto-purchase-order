@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>카톡 주문 자동 발주 & 사내 ERP 엑셀 연동 시스템</title>
+  <title>카톡 주문 원버튼 출고요청서 & ERP 연동 시스템</title>
   <!-- Google Fonts & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,10 +16,10 @@
     <!-- Header -->
     <header class="main-header">
       <div class="header-left">
-        <div class="logo-icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+        <div class="logo-icon"><i class="fa-solid fa-truck-ramp-box"></i></div>
         <div class="logo-text">
-          <h1>카톡 주문 <span>원버튼 발주 & ERP 연동</span></h1>
-          <p class="subtitle">카톡 메시지 하나로 거래처 발주서 생성부터 사내 ERP 엑셀 정리 & 네이버웍스 메일 발송까지</p>
+          <h1>카톡 주문 <span>원버튼 출고요청서 & ERP 연동</span></h1>
+          <p class="subtitle">카톡 메시지 하나로 거래처 출고요청서 생성부터 사내 ERP 엑셀 정리 & 네이버웍스 메일 발송까지</p>
         </div>
       </div>
       <div class="header-actions">
@@ -42,12 +42,11 @@
       <section class="card step-card" id="step1Card">
         <div class="card-header">
           <div class="step-badge step-1">STEP 1</div>
-          <h2><i class="fa-brands fa-kickstarter fa-comment-dots"></i> 카카오톡 주문 내용 붙여넣기</h2>
+          <h2><i class="fa-solid fa-comment-dots"></i> 카카오톡 주문 내용 붙여넣기</h2>
           <div class="sample-pills">
             <span class="pill-label">샘플:</span>
-            <button class="btn-pill" onclick="loadSample(1)">샘플 A (인쇄나라)</button>
-            <button class="btn-pill" onclick="loadSample(2)">샘플 B (한빛지류)</button>
-            <button class="btn-pill" onclick="loadSample(3)">샘플 C (동서제본)</button>
+            <button class="btn-pill" onclick="loadSample(1)">스타리온 출고요청서 (구리인창점)</button>
+            <button class="btn-pill" onclick="loadSample(2)">스타리온 표준 발주 (서면점)</button>
           </div>
         </div>
 
@@ -55,21 +54,32 @@
           <div class="input-group">
             <textarea id="kakaoInput" placeholder="카카오톡으로 받은 주문 메시지를 여기에 그대로 붙여넣으세요...
 예시:
-[발주요청]
-업체: 한빛지류
-품목:
-BK-101 500개
-BK-102 200개
-받는분: 홍길동
-연락처: 010-1234-5678
-주소: 서울시 강남구 테헤란로 123 4층
-메모: 파손주의 빠른 출고 부탁드립니다"></textarea>
+1. 납품처 
+   매장명 : 스트릿캔 구리인창점
+   주소 : 경기 구리시 인창동 672-2
+   현장담당 이름, 전화번호 : 송재호 010-9388-9989
+   납품일 및 희망 시간 : 8월 3~4일
+
+2. 모델명과 수량
+
+스타리온 1200 반찬냉장고 1/3 앞작업대 / SRV12EIEVF
++ 1200 2단선반
+스타리온 25BOX 냉장,냉동 / 직냉식 / SR-E25B1F
+스타리온 1500 냉동냉장 / 직냉식 / SR-T15B1F
+스타리온 1500 올냉동 / 직냉식 / SR-T15BAFC
+음료아날로그 / SR-SC44RW - 2대"></textarea>
           </div>
 
-          <div class="action-row">
-            <button id="btnClear" class="btn btn-ghost"><i class="fa-solid fa-rotate-left"></i> 비우기</button>
+          <div class="action-row" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <button id="btnClear" class="btn btn-ghost"><i class="fa-solid fa-rotate-left"></i> 비우기</button>
+              <label style="display: flex; align-items: center; gap: 6px; font-size: 0.9rem; color: var(--text-secondary); cursor: pointer; user-select: none;">
+                <input type="checkbox" id="chkReplaceErp" checked style="cursor: pointer; width: 16px; height: 16px;">
+                <span>기존 기록 지우고 <strong>이 주문 건만 단독으로 ERP 리스트 생성</strong></span>
+              </label>
+            </div>
             <button id="btnStep1Submit" class="btn btn-primary btn-large">
-              <i class="fa-solid fa-wand-magic-sparkles"></i> 1차: 발주서 & ERP 리스트 생성
+              <i class="fa-solid fa-wand-magic-sparkles"></i> 1차: 출고요청서 & ERP 리스트 생성
             </button>
           </div>
         </div>
@@ -81,8 +91,8 @@ BK-102 200개
           <div class="step-badge step-2">STEP 2</div>
           <h2><i class="fa-solid fa-clipboard-check"></i> 1차 생성 결과 확인 및 2차 메일 전송</h2>
           <div class="status-tags">
-            <span class="badge badge-success"><i class="fa-solid fa-check"></i> 발주서 엑셀 생성됨</span>
-            <span class="badge badge-success"><i class="fa-solid fa-check"></i> ERP 누적 추가됨</span>
+            <span class="badge badge-success"><i class="fa-solid fa-check"></i> 출고요청서 엑셀 생성됨</span>
+            <span class="badge badge-success"><i class="fa-solid fa-check"></i> ERP 리스트 반영됨</span>
           </div>
         </div>
 
@@ -90,59 +100,76 @@ BK-102 200개
           <!-- Summary Info Grid -->
           <div class="info-grid">
             <div class="info-box">
-              <label>발주 거래처</label>
-              <input type="text" id="orderVendor" class="form-input font-bold" />
+              <label>납품처명 (매장명)</label>
+              <input type="text" id="orderStore" class="form-input font-bold" placeholder="예: 메머드커피 역삼점" />
             </div>
             <div class="info-box">
-              <label>발주번호</label>
-              <input type="text" id="orderNo" class="form-input" readonly />
+              <label><i class="fa-solid fa-building-user text-primary"></i> 거래처명 (ERP 업로드용 - 수기입력)</label>
+              <input type="text" id="orderCustomerName" class="form-input font-bold" placeholder="예: 텐퍼센트, 메머드 (선택 입력)" style="border-color: #38bdf8;" />
             </div>
             <div class="info-box">
-              <label>수령인 / 연락처</label>
-              <div class="input-split">
-                <input type="text" id="recName" class="form-input" placeholder="수령인" />
-                <input type="text" id="recPhone" class="form-input" placeholder="연락처" />
-              </div>
+              <label>배송요청일 (납품일)</label>
+              <input type="text" id="orderDeliveryDate" class="form-input" placeholder="예: 08월 14일 / 8월 3~4일" />
+            </div>
+            <div class="info-box">
+              <label>현장 담당자 / 연락처</label>
+              <input type="text" id="orderContact" class="form-input" placeholder="예: 송재호 010-9388-9989" />
             </div>
             <div class="info-box full-width">
-              <label>배송지 주소</label>
-              <input type="text" id="recAddress" class="form-input" placeholder="배송지 주소" />
+              <label>배송장소 (주소)</label>
+              <input type="text" id="orderAddress" class="form-input" placeholder="예: 서울 강남구 테헤란로 123" />
             </div>
           </div>
 
           <!-- Items Table -->
           <div class="table-container">
             <div class="table-title-row">
-              <h3><i class="fa-solid fa-boxes-stacked"></i> 발주 품목 및 매입/수주가 내역</h3>
-              <button class="btn btn-sm btn-outline" id="btnAddRow"><i class="fa-solid fa-plus"></i> 품목 추가</button>
+              <h3><i class="fa-solid fa-boxes-stacked"></i> 출고 품명 리스트 및 단가(매입가/할인가)</h3>
+              <div class="table-actions">
+                <button class="btn btn-sm btn-outline" id="btnAddRow"><i class="fa-solid fa-plus"></i> 품목 추가</button>
+                <button class="btn btn-sm btn-primary" id="btnRegenerateOrder"><i class="fa-solid fa-arrows-rotate"></i> 수정사항 엑셀 재반영</button>
+              </div>
             </div>
-            <table class="data-table" id="itemsTable">
-              <thead>
-                <tr>
-                  <th width="12%">품번</th>
-                  <th width="20%">품명</th>
-                  <th width="13%">규격</th>
-                  <th width="9%">수량</th>
-                  <th width="12%">매입가(단가)</th>
-                  <th width="12%">수주가(단가)</th>
-                  <th width="12%">예상 마진</th>
-                  <th width="10%">관리</th>
-                </tr>
-              </thead>
-              <tbody id="itemsTableBody">
-                <!-- Dynamically Inserted -->
-              </tbody>
-              <tfoot>
-                <tr class="total-row">
-                  <td colspan="3" class="text-center">합 계</td>
-                  <td id="totQty" class="text-right">0</td>
-                  <td id="totBuyAmount" class="text-right text-danger">0원</td>
-                  <td id="totSellAmount" class="text-right text-primary">0원</td>
-                  <td id="totMargin" class="text-right text-success font-bold">0원</td>
-                  <td></td>
-                </tr>
-              </tfoot>
-            </table>
+            <div style="overflow-x: auto;">
+              <table class="data-table" id="itemsTable">
+                <thead>
+                  <tr>
+                    <th width="4%">NO</th>
+                    <th width="24%">품명</th>
+                    <th width="15%">모델명</th>
+                    <th width="7%">수량</th>
+                    <th width="12%">매입단가(원)</th>
+                    <th width="12%">수주단가/할인가(원)</th>
+                    <th width="11%">예상마진(원)</th>
+                    <th width="11%">비고</th>
+                    <th width="4%">관리</th>
+                  </tr>
+                </thead>
+                <tbody id="itemsTableBody">
+                  <!-- Dynamically Inserted -->
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Financial Summary Cards -->
+            <div class="summary-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 16px; padding: 14px; background: rgba(30, 41, 59, 0.5); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+              <div class="sum-card" style="text-align: center;">
+                <div style="font-size: 0.8rem; color: var(--text-muted);">총 발주수량</div>
+                <div id="totQty" style="font-size: 1.3rem; font-weight: 700; color: #38bdf8;">0 대</div>
+              </div>
+              <div class="sum-card" style="text-align: center;">
+                <div style="font-size: 0.8rem; color: var(--text-muted);">총 매입합계 (VAT-)</div>
+                <div id="totBuyPrice" style="font-size: 1.3rem; font-weight: 700; color: #94a3b8;">0 원</div>
+              </div>
+              <div class="sum-card" style="text-align: center;">
+                <div style="font-size: 0.8rem; color: var(--text-muted);">총 수주합계 (할인가)</div>
+                <div id="totSellPrice" style="font-size: 1.3rem; font-weight: 700; color: #a78bfa;">0 원</div>
+              </div>
+              <div class="sum-card" style="text-align: center;">
+                <div style="font-size: 0.8rem; color: var(--text-muted);">총 예상마진</div>
+                <div id="totMargin" style="font-size: 1.3rem; font-weight: 800; color: #4ade80;">0 원</div>
+              </div>
+            </div>
           </div>
 
           <!-- Excel Download & Actions Banner -->
@@ -150,16 +177,16 @@ BK-102 200개
             <div class="banner-text">
               <i class="fa-solid fa-file-excel text-success fa-2x"></i>
               <div>
-                <strong>발주서 엑셀 파일이 준비되었습니다.</strong>
-                <p id="orderFileName">발주서_인쇄나라_20260818.xlsx</p>
+                <strong>출고요청서 엑셀 파일이 준비되었습니다.</strong>
+                <p id="orderFileName">발주서 파일이 준비되었습니다.</p>
               </div>
             </div>
             <div class="banner-buttons">
               <button id="btnDownloadOrder" class="btn btn-secondary">
-                <i class="fa-solid fa-download"></i> 발주서 다운로드
+                <i class="fa-solid fa-download"></i> 출고요청서 다운로드
               </button>
               <button id="btnDownloadErp" class="btn btn-outline">
-                <i class="fa-solid fa-file-export"></i> ERP 누적파일 다운로드
+                <i class="fa-solid fa-file-export"></i> ERP 리스트 다운로드
               </button>
             </div>
           </div>
@@ -167,33 +194,41 @@ BK-102 200개
           <!-- Naver Works Mail Send Form -->
           <div class="mail-panel">
             <div class="mail-panel-header">
-              <h3><i class="fa-solid fa-paper-plane"></i> 2차: 네이버웍스 발주서 이메일 발송</h3>
-              <span class="text-muted text-sm"><i class="fa-solid fa-paperclip"></i> 발주서 엑셀 파일이 자동 첨부됩니다.</span>
+              <h3><i class="fa-solid fa-paper-plane"></i> 2차: 네이버웍스 출고요청서 이메일 발송</h3>
+              <span class="text-muted text-sm"><i class="fa-solid fa-paperclip"></i> 출고요청서 엑셀 파일이 자동 첨부됩니다.</span>
             </div>
 
             <div class="mail-form-grid">
-              <div class="form-group">
-                <label>받는 사람 이메일 (거래처 메일)</label>
-                <input type="email" id="mailTo" class="form-input" placeholder="vendor@example.com" />
-              </div>
-              <div class="form-group">
-                <label>메일 제목</label>
-                <input type="text" id="mailSubject" class="form-input" />
+              <div class="form-group full-width">
+                <label style="display: flex; justify-content: space-between;">
+                  <span><i class="fa-solid fa-envelope"></i> 받는 사람 이메일 (기본 3명 설정)</span>
+                  <span style="font-size: 0.8rem; color: #94a3b8; font-weight: normal;">쉼표(,)나 세미콜론(;)으로 여러 메일을 자유롭게 추가/삭제 가능</span>
+                </label>
+                <input type="text" id="mailTo" class="form-input font-bold" value="hj.seo@starion.co.kr, gscheon@starion.co.kr, cth@ohjin.co.kr" placeholder="예: hj.seo@starion.co.kr, gscheon@starion.co.kr, cth@ohjin.co.kr" />
               </div>
               <div class="form-group full-width">
-                <label>메일 본문 내용</label>
-                <textarea id="mailBody" rows="5" class="form-input"></textarea>
+                <label><i class="fa-solid fa-heading"></i> 메일 제목</label>
+                <input type="text" id="mailSubject" class="form-input font-bold" />
+              </div>
+              <div class="form-group full-width">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                  <label style="margin-bottom: 0;"><i class="fa-solid fa-align-left"></i> 메일 본문 내용</label>
+                  <button type="button" id="btnCopyMailBody" class="btn btn-sm btn-outline" style="color: #38bdf8; border-color: #38bdf8; font-weight: bold;">
+                    <i class="fa-solid fa-copy"></i> 📋 발주서 이미지 복사 (메일 본문 Ctrl+V용)
+                  </button>
+                </div>
+                <textarea id="mailBody" rows="13" class="form-input" style="font-family: monospace, '맑은 고딕'; line-height: 1.55;"></textarea>
               </div>
             </div>
 
-            <div class="mail-action-row">
-              <button id="btnOpenFolder" class="btn btn-outline" title="윈도우 탐색기에서 발주서 파일이 있는 폴더를 바로 엽니다.">
+            <div class="mail-action-row" style="margin-top: 15px;">
+              <button id="btnOpenFolder" class="btn btn-outline" title="윈도우 탐색기에서 출고요청서 파일이 있는 폴더를 바로 엽니다.">
                 <i class="fa-solid fa-folder-open"></i> 발주서 저장 폴더 열기
               </button>
-              <button id="btnOpenWebmail" class="btn btn-primary btn-large" title="Edge에 로그인된 네이버웍스 메일 작성창을 새 탭으로 엽니다 (비밀번호 저장 불필요!)">
-                <i class="fa-solid fa-arrow-up-right-from-square"></i> 2차: Edge 네이버웍스 메일쓰기 열기
+              <button id="btnOpenWebmail" class="btn btn-primary btn-large" title="받는사람, 제목, 본문이 자동 입력된 네이버웍스 메일쓰기 팝업창을 엽니다.">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i> 2차: 네이버웍스 메일쓰기 팝업 열기
               </button>
-              <button id="btnSendMail" class="btn btn-accent btn-large" title="설정된 SMTP 계정으로 직접 발송합니다.">
+              <button id="btnSendMail" class="btn btn-accent btn-large" title="설정된 SMTP 계정으로 사이트에서 원클릭 직접 발송합니다.">
                 <i class="fa-solid fa-paper-plane"></i> SMTP 직접 발송
               </button>
             </div>
@@ -257,19 +292,19 @@ BK-102 200개
     <div class="modal" id="modalPriceMaster">
       <div class="modal-content modal-lg">
         <div class="modal-header">
-          <h2><i class="fa-solid fa-tags"></i> 품번별 단가표 (Price Master) 관리</h2>
+          <h2><i class="fa-solid fa-tags"></i> 단가표 및 양식 관리</h2>
           <button class="btn-close" onclick="closeModal('modalPriceMaster')">&times;</button>
         </div>
         <div class="modal-body">
           <div class="master-toolbar">
-            <p class="text-sm text-muted">카톡 주문에서 품번을 감지하면 아래 등록된 <strong>매입가</strong>와 <strong>수주가</strong>를 자동으로 찾아옵니다.</p>
+            <p class="text-sm text-muted">등록된 단가표 및 발주서 템플릿(order_template.xlsx)을 다운로드하거나 변경 업로드할 수 있습니다.</p>
             <div class="toolbar-actions">
-              <button id="btnDownloadPriceMaster" class="btn btn-sm btn-secondary">
-                <i class="fa-solid fa-download"></i> 엑셀 단가표 다운로드
+              <button id="btnDownloadTemplate" class="btn btn-sm btn-outline">
+                <i class="fa-solid fa-file-excel"></i> 기본 발주서 양식 다운로드
               </button>
-              <label class="btn btn-sm btn-outline file-upload-btn">
-                <i class="fa-solid fa-upload"></i> 단가표 엑셀 업로드
-                <input type="file" id="priceMasterFileInput" accept=".xlsx" style="display:none;" />
+              <label class="btn btn-sm btn-secondary file-upload-btn">
+                <i class="fa-solid fa-upload"></i> 발주서 양식 업로드 (.xlsx)
+                <input type="file" id="orderTemplateFileInput" accept=".xlsx" style="display:none;" />
               </label>
             </div>
           </div>
@@ -278,11 +313,12 @@ BK-102 200개
             <table class="data-table">
               <thead>
                 <tr>
+                  <th>모델명</th>
                   <th>품번</th>
                   <th>품명</th>
                   <th>규격</th>
-                  <th>매입단가</th>
-                  <th>수주단가</th>
+                  <th>매입단가(원)</th>
+                  <th>수주단가(원)</th>
                   <th>비고</th>
                 </tr>
               </thead>
@@ -302,15 +338,20 @@ BK-102 200개
     <div class="modal" id="modalErp">
       <div class="modal-content modal-lg">
         <div class="modal-header">
-          <h2><i class="fa-solid fa-table-list"></i> 사내 ERP 업로드용 누적 리스트</h2>
+          <h2><i class="fa-solid fa-table-list"></i> 사내 ERP 업로드용 리스트 관리</h2>
           <button class="btn-close" onclick="closeModal('modalErp')">&times;</button>
         </div>
         <div class="modal-body">
-          <div class="erp-toolbar">
-            <span class="text-sm font-semibold">총 누적 발주 행: <strong id="modalErpTotalRows" class="text-primary">0</strong>개</span>
-            <button id="btnModalDownloadErp" class="btn btn-sm btn-secondary">
-              <i class="fa-solid fa-file-excel"></i> erp_upload_list.xlsx 전체 다운로드
-            </button>
+          <div class="erp-toolbar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <span class="text-sm font-semibold">현재 ERP 저장 행: <strong id="modalErpTotalRows" class="text-primary">0</strong>개</span>
+            <div style="display: flex; gap: 8px;">
+              <button id="btnClearErpList" class="btn btn-sm btn-outline text-danger" title="기존 ERP 리스트의 모든 기록을 삭제하고 초기화합니다.">
+                <i class="fa-solid fa-trash"></i> 기존 기록 전체 비우기
+              </button>
+              <button id="btnModalDownloadErp" class="btn btn-sm btn-secondary">
+                <i class="fa-solid fa-file-excel"></i> erp_upload_list.xlsx 다운로드
+              </button>
+            </div>
           </div>
 
           <div class="table-container max-height-300 mt-3">
@@ -319,13 +360,13 @@ BK-102 200개
                 <tr>
                   <th>일자</th>
                   <th>발주번호</th>
-                  <th>거래처</th>
-                  <th>품번</th>
-                  <th>품명</th>
+                  <th>납품처</th>
+                  <th>품목</th>
+                  <th>모델명</th>
                   <th>수량</th>
-                  <th>매입가</th>
-                  <th>수주가</th>
-                  <th>예상마진</th>
+                  <th>매입단가</th>
+                  <th>수주단가</th>
+                  <th>마진</th>
                 </tr>
               </thead>
               <tbody id="erpRecentTableBody">

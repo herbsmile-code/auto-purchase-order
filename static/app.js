@@ -1,139 +1,195 @@
-// Global State
 let currentOrderData = null;
 let currentOrderFile = "";
+let currentOrderHtml = "";
 
 // Sample Kakao Messages
 const SAMPLES = {
-  1: `[발주요청]
-업체: 인쇄나라
-품목:
-BK-101 500개
-BK-202 50개
-받는분: 김철수
-연락처: 010-3333-7777
-주소: 서울특별시 마포구 월드컵북로 120 인쇄빌딩 3층
-메모: 파손주의 및 오후 2시 이전 출고 요망`,
+  1: `1. 납품처 
+   매장명 : 스트릿캔 구리인창점
+   주소 : 경기 구리시 인창동 672-2
+   현장담당 이름, 전화번호 : 송재호 010-9388-9989
+   납품일 및 희망 시간 : 8월 14일
 
-  2: `한빛지류 대리님 안녕하세요~
-BK-102 300권이랑 PAPER-A4 20박스 급하게 발주 넣습니다!
-수령인: 이영희 과장
-전화: 010-8888-9999
-납품처: 경기도 파주시 문발로 456 출판단지 A동 201호
-특이사항: 거래명세서 동봉 부탁드립니다`,
+2. 모델명과 수량
 
-  3: `동서제본 발주건입니다.
-- BK-201 / 200개
-- BK-103 / 50개
-수령인: 박민수 (010-5555-1234)
-배송지: 부산광역시 해운대구 센텀중앙로 78 12층
-배송메모: 도착 전 기사님 연락 필수`
+스타리온 1200 반찬냉장고 1/3 앞작업대 / SRV12EIEVF
++ 1200 2단선반
+스타리온 25BOX 냉장,냉동 / 직냉식 / SR-E25B1F
+스타리온 1500 냉동냉장 / 직냉식 / SR-T15B1F
+스타리온 1500 올냉동 / 직냉식 / SR-T15BAFC
+음료아날로그 / SR-SC44RW - 2대`,
+
+  2: `1. 납품처
+   매장명 : 미쉐 서면점
+   주소 : 부산광역시 부산진구 중앙대로 686
+   현장담당 이름, 전화번호 : 김현수 010-5555-4321
+   납품일 및 희망 시간 : 08월 25일 오전
+
+2. 모델명과 수량
+
+스타리온 1500 냉동냉장 / 직냉식 / SR-T15B1F - 1대
+스타리온 25BOX 올냉동 / 직냉식 / SR-E25BAFC - 1대
+음료아날로그 / SR-SC44RW - 1대`
 };
+
+// Safe DOM Helpers
+function safeSetVal(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.value = (val !== null && val !== undefined) ? val : "";
+}
+
+function safeGetVal(id, defaultVal = "") {
+  const el = document.getElementById(id);
+  return el ? el.value.trim() : defaultVal;
+}
+
+function safeSetText(id, txt) {
+  const el = document.getElementById(id);
+  if (el) el.innerText = (txt !== null && txt !== undefined) ? txt : "";
+}
+
+function safeAddEvent(id, event, handler) {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener(event, handler);
+}
 
 // DOM Ready
 document.addEventListener("DOMContentLoaded", () => {
-  initEventListeners();
-  loadErpSummary();
-  loadConfig();
+  try {
+    initEventListeners();
+    loadErpSummary();
+    loadConfig();
+  } catch (e) {
+    console.error("Initialization error:", e);
+  }
 });
 
 function initEventListeners() {
   // Clear button
-  document.getElementById("btnClear").addEventListener("click", () => {
-    document.getElementById("kakaoInput").value = "";
-    document.getElementById("step2Card").style.display = "none";
+  safeAddEvent("btnClear", "click", () => {
+    safeSetVal("kakaoInput", "");
+    const s2 = document.getElementById("step2Card");
+    if (s2) s2.style.display = "none";
   });
 
   // STEP 1 Button: Create Order & ERP List
-  document.getElementById("btnStep1Submit").addEventListener("click", handleStep1Submit);
+  safeAddEvent("btnStep1Submit", "click", handleStep1Submit);
 
-  // STEP 2: Items Table Add Row
-  document.getElementById("btnAddRow").addEventListener("click", handleAddTableRow);
+  // STEP 2: Items Table Add Row & Regenerate
+  safeAddEvent("btnAddRow", "click", handleAddTableRow);
+  safeAddEvent("btnRegenerateOrder", "click", handleRegenerateOrder);
+
+  // STEP 2: Copy Mail Body (HTML Table + Text)
+  safeAddEvent("btnCopyMailBody", "click", handleCopyMailBody);
 
   // STEP 2: Open Folder
-  document.getElementById("btnOpenFolder").addEventListener("click", handleOpenFolder);
+  safeAddEvent("btnOpenFolder", "click", handleOpenFolder);
 
   // STEP 2: Open Edge Naver Works Webmail
-  document.getElementById("btnOpenWebmail").addEventListener("click", handleOpenWebmail);
+  safeAddEvent("btnOpenWebmail", "click", handleOpenWebmail);
 
   // STEP 2: Send Mail (SMTP)
-  document.getElementById("btnSendMail").addEventListener("click", handleSendMail);
+  safeAddEvent("btnSendMail", "click", handleSendMail);
 
   // Download buttons
-  document.getElementById("btnDownloadOrder").addEventListener("click", () => {
+  safeAddEvent("btnDownloadOrder", "click", () => {
     if (currentOrderFile) {
       window.open(`/api/download/order/${encodeURIComponent(currentOrderFile)}`, "_blank");
     }
   });
 
-  document.getElementById("btnDownloadErp").addEventListener("click", () => {
+  safeAddEvent("btnDownloadErp", "click", () => {
     window.open("/api/download/erp-list", "_blank");
   });
 
-  document.getElementById("btnModalDownloadErp").addEventListener("click", () => {
+  safeAddEvent("btnModalDownloadErp", "click", () => {
     window.open("/api/download/erp-list", "_blank");
   });
 
   // Header Modal Triggers
-  document.getElementById("btnErpSummary").addEventListener("click", openErpModal);
-  document.getElementById("btnOpenPriceMaster").addEventListener("click", openPriceMasterModal);
-  document.getElementById("btnOpenSettings").addEventListener("click", openSettingsModal);
+  safeAddEvent("btnErpSummary", "click", openErpModal);
+  safeAddEvent("btnOpenPriceMaster", "click", openPriceMasterModal);
+  safeAddEvent("btnOpenSettings", "click", openSettingsModal);
+
+  // ERP Clear button in modal
+  safeAddEvent("btnClearErpList", "click", handleClearErpList);
 
   // Settings Modal actions
-  document.getElementById("btnSaveSettings").addEventListener("click", saveConfig);
-  document.getElementById("btnTestMail").addEventListener("click", handleTestMail);
-  document.getElementById("btnAddVendor").addEventListener("click", () => addVendorRow());
+  safeAddEvent("btnSaveSettings", "click", saveConfig);
+  safeAddEvent("btnTestMail", "click", handleTestMail);
+  safeAddEvent("btnAddVendor", "click", () => addVendorRow());
 
-  // Price Master Modal actions
-  document.getElementById("btnDownloadPriceMaster").addEventListener("click", () => {
-    window.open("/api/download/price-master", "_blank");
+  // Template Download / Upload actions
+  safeAddEvent("btnDownloadTemplate", "click", () => {
+    window.open("/api/download/order-template", "_blank");
   });
+  safeAddEvent("orderTemplateFileInput", "change", handleOrderTemplateUpload);
+}
 
-  document.getElementById("priceMasterFileInput").addEventListener("change", handlePriceMasterUpload);
+// ----------------- Safe Fetch Helper ----------------- //
+
+async function fetchJson(url, options = {}) {
+  const res = await fetch(url, options);
+  const text = await res.text();
+  
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch (e) {
+    if (!res.ok) {
+      throw new Error(`서버 오류 (${res.status}): 요청 처리 중 문제가 발생했습니다.`);
+    }
+    throw new Error("서버 응답을 해석할 수 없습니다.");
+  }
+
+  if (!res.ok) {
+    throw new Error(data.detail || data.message || `오류 발생 (상태 코드: ${res.status})`);
+  }
+
+  return data;
 }
 
 // ----------------- STEP 1: Process Kakao Order ----------------- //
 
 function loadSample(num) {
-  document.getElementById("kakaoInput").value = SAMPLES[num] || "";
-  showToast("샘플 카톡 메시지가 입력되었습니다.", "info");
+  safeSetVal("kakaoInput", SAMPLES[num] || "");
+  showToast("샘플 출고요청서 내용이 입력되었습니다.", "info");
 }
 
 async function handleStep1Submit() {
-  const kakaoText = document.getElementById("kakaoInput").value.trim();
+  const kakaoText = safeGetVal("kakaoInput");
   if (!kakaoText) {
     showToast("카카오톡 주문 내용을 입력해주세요.", "error");
     return;
   }
 
+  const chkReplace = document.getElementById("chkReplaceErp");
+  const replaceErp = chkReplace ? chkReplace.checked : false;
+
   const btn = document.getElementById("btnStep1Submit");
-  const originalHtml = btn.innerHTML;
-  btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 분석 및 생성 중...`;
-  btn.disabled = true;
+  const originalHtml = btn ? btn.innerHTML : "";
+  if (btn) {
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 분석 및 출고요청서 생성 중...`;
+    btn.disabled = true;
+  }
 
   try {
-    // 1. 카톡 파싱 API 호출
-    const parseRes = await fetch("/api/parse-order", {
+    // 1. 카톡 파싱 API 호출 (모델명 및 단가표 매칭)
+    const parseData = await fetchJson("/api/parse-order", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text: kakaoText })
     });
-    const parseData = await parseRes.json();
-    if (!parseRes.ok || !parseData.success) {
-      throw new Error(parseData.detail || "주문 분석에 실패했습니다.");
-    }
 
     const order = parseData.data;
+    order.replace_erp = replaceErp;
 
     // 2. 발주서 및 ERP 리스트 생성 API 호출
-    const createRes = await fetch("/api/create-order-and-erp", {
+    const createData = await fetchJson("/api/create-order-and-erp", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(order)
     });
-    const createData = await createRes.json();
-    if (!createRes.ok || !createData.success) {
-      throw new Error(createData.detail || "발주서 엑셀 생성에 실패했습니다.");
-    }
 
     currentOrderData = order;
     currentOrderFile = createData.order_file;
@@ -142,14 +198,16 @@ async function handleStep1Submit() {
     renderStep2(order, createData);
     loadErpSummary();
 
-    showToast("🎉 발주서 엑셀 및 ERP 누적 리스트 생성이 완료되었습니다!", "success");
+    showToast("🎉 출고요청서 엑셀 및 ERP 리스트 생성이 완료되었습니다!", "success");
 
   } catch (err) {
     console.error(err);
     showToast(`오류: ${err.message}`, "error");
   } finally {
-    btn.innerHTML = originalHtml;
-    btn.disabled = false;
+    if (btn) {
+      btn.innerHTML = originalHtml;
+      btn.disabled = false;
+    }
   }
 }
 
@@ -157,37 +215,41 @@ async function handleStep1Submit() {
 
 function renderStep2(order, createData) {
   const step2Card = document.getElementById("step2Card");
-  step2Card.style.display = "block";
+  if (step2Card) step2Card.style.display = "block";
 
   // Basic Info
-  document.getElementById("orderVendor").value = order.vendor_name || "";
-  document.getElementById("orderNo").value = order.order_no || "";
-  document.getElementById("recName").value = order.recipient_name || "";
-  document.getElementById("recPhone").value = order.recipient_phone || "";
-  document.getElementById("recAddress").value = order.recipient_address || "";
+  safeSetVal("orderStore", order.store_name || order.recipient_name || "");
+  safeSetVal("orderCustomerName", order.customer_name || "");
+  safeSetVal("orderDeliveryDate", order.delivery_date || "");
+  safeSetVal("orderContact", order.recipient_contact || `${order.recipient_name || ''} ${order.recipient_phone || ''}`.trim());
+  safeSetVal("orderAddress", order.recipient_address || "");
 
-  // File Name
-  document.getElementById("orderFileName").innerText = createData.order_file || "";
+  // File Name & HTML Body
+  safeSetText("orderFileName", createData.order_file || "");
+  const mailDraft = createData.mail_draft || {};
+  currentOrderHtml = mailDraft.body_html || "";
 
   // Mail Draft
-  const mailDraft = createData.mail_draft || {};
-  document.getElementById("mailTo").value = mailDraft.to_email || order.vendor_email || "";
-  document.getElementById("mailSubject").value = mailDraft.subject || "";
-  document.getElementById("mailBody").value = mailDraft.body || "";
+  safeSetVal("mailTo", mailDraft.to_email || order.vendor_email || "hj.seo@starion.co.kr, gscheon@starion.co.kr, cth@ohjin.co.kr");
+  safeSetVal("mailSubject", mailDraft.subject || "");
+  safeSetVal("mailBody", mailDraft.body || "");
 
   // Render Items Table
   renderItemsTable(order.items || []);
 
   // Smooth scroll to Step 2
-  step2Card.scrollIntoView({ behavior: "smooth", block: "start" });
+  if (step2Card) {
+    step2Card.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 }
 
 function renderItemsTable(items) {
   const tbody = document.getElementById("itemsTableBody");
+  if (!tbody) return;
   tbody.innerHTML = "";
 
   if (!items || items.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted" style="padding: 20px;">등록된 품목이 없습니다. [품목 추가]를 눌러주세요.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted" style="padding: 20px;">등록된 품목이 없습니다. [품목 추가]를 눌러주세요.</td></tr>`;
     calculateTotals();
     return;
   }
@@ -196,28 +258,37 @@ function renderItemsTable(items) {
     const tr = document.createElement("tr");
     tr.dataset.index = index;
 
-    const qty = parseInt(item.qty) || 0;
+    const no = index + 1;
+    const itemName = item.item_name || "";
+    const modelName = item.model_name || item.item_code || "";
+    const qty = parseInt(item.qty) || 1;
     const buyPrice = parseInt(item.buy_price) || 0;
     const sellPrice = parseInt(item.sell_price) || 0;
-    const margin = (sellPrice - buyPrice) * qty;
+    const margin = sellPrice - buyPrice;
+    const remark = item.remark || "스타리온 직배송 요청";
 
     tr.innerHTML = `
-      <td><input type="text" class="table-input item-code" value="${escapeHtml(item.item_code || '')}" placeholder="품번" /></td>
-      <td><input type="text" class="table-input item-name" value="${escapeHtml(item.item_name || '')}" placeholder="품명" /></td>
-      <td><input type="text" class="table-input item-spec" value="${escapeHtml(item.spec || '')}" placeholder="규격" /></td>
-      <td><input type="number" class="table-input item-qty text-right" value="${qty}" min="1" /></td>
-      <td><input type="number" class="table-input item-buy-price text-right" value="${buyPrice}" /></td>
-      <td><input type="number" class="table-input item-sell-price text-right" value="${sellPrice}" /></td>
-      <td class="text-right font-bold item-margin text-success">${formatNumber(margin)}원</td>
+      <td class="text-center font-bold">${no}</td>
+      <td><input type="text" class="table-input item-name" value="${escapeHtml(itemName)}" placeholder="품목명 (예: 스타리온 1200 반찬냉장고)" /></td>
+      <td><input type="text" class="table-input item-model font-mono text-primary font-bold text-center" value="${escapeHtml(modelName)}" placeholder="모델명 (예: SRV12EIEVF)" /></td>
+      <td><input type="number" class="table-input item-qty text-center font-bold" value="${qty}" min="1" /></td>
+      <td><input type="number" class="table-input item-buy text-right font-bold" value="${buyPrice}" placeholder="매입단가" /></td>
+      <td><input type="number" class="table-input item-sell text-right font-bold text-primary" value="${sellPrice}" placeholder="수주단가" /></td>
+      <td class="text-right font-bold item-margin-cell" style="color: ${margin >= 0 ? '#4ade80' : '#f87171'}; padding-right: 10px;">${formatNumber(margin)}원</td>
+      <td><input type="text" class="table-input item-remark text-center" value="${escapeHtml(remark)}" placeholder="비고" /></td>
       <td class="text-center">
-        <button class="btn-danger-sm" onclick="handleDeleteRow(this)"><i class="fa-solid fa-trash"></i></button>
+        <button class="btn-danger-sm" onclick="handleDeleteRow(this)" title="행 삭제"><i class="fa-solid fa-trash"></i></button>
       </td>
     `;
 
-    // Add input event listeners for auto-calc
-    tr.querySelectorAll("input").forEach(inp => {
-      inp.addEventListener("input", () => handleRowInputChange(tr));
-    });
+    // Realtime listeners
+    const qtyInp = tr.querySelector(".item-qty");
+    const buyInp = tr.querySelector(".item-buy");
+    const sellInp = tr.querySelector(".item-sell");
+
+    if (qtyInp) qtyInp.addEventListener("input", () => updateRowMarginAndTotals(tr));
+    if (buyInp) buyInp.addEventListener("input", () => updateRowMarginAndTotals(tr));
+    if (sellInp) sellInp.addEventListener("input", () => updateRowMarginAndTotals(tr));
 
     tbody.appendChild(tr);
   });
@@ -225,18 +296,18 @@ function renderItemsTable(items) {
   calculateTotals();
 }
 
-function handleRowInputChange(tr) {
-  const qty = parseInt(tr.querySelector(".item-qty").value) || 0;
-  const buyPrice = parseInt(tr.querySelector(".item-buy-price").value) || 0;
-  const sellPrice = parseInt(tr.querySelector(".item-sell-price").value) || 0;
-  const margin = (sellPrice - buyPrice) * qty;
+function updateRowMarginAndTotals(tr) {
+  const buyInp = tr.querySelector(".item-buy");
+  const sellInp = tr.querySelector(".item-sell");
+  const marginCell = tr.querySelector(".item-margin-cell");
 
-  const marginEl = tr.querySelector(".item-margin");
-  marginEl.innerText = `${formatNumber(margin)}원`;
-  if (margin < 0) {
-    marginEl.className = "text-right font-bold item-margin text-danger";
-  } else {
-    marginEl.className = "text-right font-bold item-margin text-success";
+  const buy = parseInt(buyInp ? buyInp.value : 0) || 0;
+  const sell = parseInt(sellInp ? sellInp.value : 0) || 0;
+  const margin = sell - buy;
+
+  if (marginCell) {
+    marginCell.innerText = `${formatNumber(margin)}원`;
+    marginCell.style.color = margin >= 0 ? '#4ade80' : '#f87171';
   }
 
   calculateTotals();
@@ -244,29 +315,45 @@ function handleRowInputChange(tr) {
 
 function handleAddTableRow() {
   const tbody = document.getElementById("itemsTableBody");
+  if (!tbody) return;
+
+  const rowCount = tbody.querySelectorAll("tr").length + 1;
   const tr = document.createElement("tr");
+  
   tr.innerHTML = `
-    <td><input type="text" class="table-input item-code" placeholder="예: BK-101" /></td>
-    <td><input type="text" class="table-input item-name" placeholder="품명" /></td>
-    <td><input type="text" class="table-input item-spec" placeholder="규격" /></td>
-    <td><input type="number" class="table-input item-qty text-right" value="1" min="1" /></td>
-    <td><input type="number" class="table-input item-buy-price text-right" value="0" /></td>
-    <td><input type="number" class="table-input item-sell-price text-right" value="0" /></td>
-    <td class="text-right font-bold item-margin text-success">0원</td>
+    <td class="text-center font-bold">${rowCount}</td>
+    <td><input type="text" class="table-input item-name" placeholder="품목명" /></td>
+    <td><input type="text" class="table-input item-model font-mono text-primary font-bold text-center" placeholder="모델명 (예: SRV12EIEVF)" /></td>
+    <td><input type="number" class="table-input item-qty text-center font-bold" value="1" min="1" /></td>
+    <td><input type="number" class="table-input item-buy text-right font-bold" value="0" placeholder="매입단가" /></td>
+    <td><input type="number" class="table-input item-sell text-right font-bold text-primary" value="0" placeholder="수주단가" /></td>
+    <td class="text-right font-bold item-margin-cell" style="color: #4ade80; padding-right: 10px;">0원</td>
+    <td><input type="text" class="table-input item-remark text-center" value="스타리온 직배송 요청" placeholder="비고" /></td>
     <td class="text-center">
-      <button class="btn-danger-sm" onclick="handleDeleteRow(this)"><i class="fa-solid fa-trash"></i></button>
+      <button class="btn-danger-sm" onclick="handleDeleteRow(this)" title="행 삭제"><i class="fa-solid fa-trash"></i></button>
     </td>
   `;
-  tr.querySelectorAll("input").forEach(inp => {
-    inp.addEventListener("input", () => handleRowInputChange(tr));
-  });
+
+  const qtyInp = tr.querySelector(".item-qty");
+  const buyInp = tr.querySelector(".item-buy");
+  const sellInp = tr.querySelector(".item-sell");
+
+  if (qtyInp) qtyInp.addEventListener("input", () => updateRowMarginAndTotals(tr));
+  if (buyInp) buyInp.addEventListener("input", () => updateRowMarginAndTotals(tr));
+  if (sellInp) sellInp.addEventListener("input", () => updateRowMarginAndTotals(tr));
+
   tbody.appendChild(tr);
   calculateTotals();
 }
 
 function handleDeleteRow(btn) {
   const tr = btn.closest("tr");
-  tr.remove();
+  if (tr) tr.remove();
+  // Re-index row numbers
+  document.querySelectorAll("#itemsTableBody tr").forEach((row, idx) => {
+    const noCell = row.querySelector("td:first-child");
+    if (noCell) noCell.innerText = idx + 1;
+  });
   calculateTotals();
 }
 
@@ -275,54 +362,80 @@ function calculateTotals() {
   let totQty = 0;
   let totBuy = 0;
   let totSell = 0;
-  let totMargin = 0;
 
   rows.forEach(tr => {
     const qtyInp = tr.querySelector(".item-qty");
+    const buyInp = tr.querySelector(".item-buy");
+    const sellInp = tr.querySelector(".item-sell");
+
     if (!qtyInp) return;
     const qty = parseInt(qtyInp.value) || 0;
-    const buy = parseInt(tr.querySelector(".item-buy-price").value) || 0;
-    const sell = parseInt(tr.querySelector(".item-sell-price").value) || 0;
+    const buy = parseInt(buyInp ? buyInp.value : 0) || 0;
+    const sell = parseInt(sellInp ? sellInp.value : 0) || 0;
 
     totQty += qty;
     totBuy += (qty * buy);
     totSell += (qty * sell);
   });
 
-  totMargin = totSell - totBuy;
+  const totMargin = totSell - totBuy;
 
-  document.getElementById("totQty").innerText = formatNumber(totQty);
-  document.getElementById("totBuyAmount").innerText = `${formatNumber(totBuy)}원`;
-  document.getElementById("totSellAmount").innerText = `${formatNumber(totSell)}원`;
-  document.getElementById("totMargin").innerText = `${formatNumber(totMargin)}원`;
+  safeSetText("totQty", `${formatNumber(totQty)} 대`);
+  safeSetText("totBuyPrice", `${formatNumber(totBuy)} 원`);
+  safeSetText("totSellPrice", `${formatNumber(totSell)} 원`);
+
+  const elMargin = document.getElementById("totMargin");
+  if (elMargin) {
+    elMargin.innerText = `${formatNumber(totMargin)} 원`;
+    elMargin.style.color = totMargin >= 0 ? '#4ade80' : '#f87171';
+  }
 }
 
 function gatherCurrentOrderData() {
   const items = [];
   const rows = document.querySelectorAll("#itemsTableBody tr");
-  rows.forEach(tr => {
-    const codeInp = tr.querySelector(".item-code");
-    if (!codeInp) return;
-    const code = codeInp.value.trim();
-    if (!code) return;
+  
+  rows.forEach((tr, idx) => {
+    const nameInp = tr.querySelector(".item-name");
+    const modelInp = tr.querySelector(".item-model");
+    const qtyInp = tr.querySelector(".item-qty");
+    const buyInp = tr.querySelector(".item-buy");
+    const sellInp = tr.querySelector(".item-sell");
+    const remarkInp = tr.querySelector(".item-remark");
+    
+    if (!nameInp && !modelInp) return;
+    
+    const itemName = nameInp ? nameInp.value.trim() : "";
+    const modelName = modelInp ? modelInp.value.trim() : "";
+    if (!itemName && !modelName) return;
+
+    const qty = parseInt(qtyInp ? qtyInp.value : 1) || 1;
+    const buyPrice = parseInt(buyInp ? buyInp.value : 0) || 0;
+    const sellPrice = parseInt(sellInp ? sellInp.value : 0) || 0;
 
     items.push({
-      item_code: code,
-      item_name: tr.querySelector(".item-name").value.trim(),
-      spec: tr.querySelector(".item-spec").value.trim(),
-      qty: parseInt(tr.querySelector(".item-qty").value) || 1,
-      buy_price: parseInt(tr.querySelector(".item-buy-price").value) || 0,
-      sell_price: parseInt(tr.querySelector(".item-sell-price").value) || 0,
-      remark: ""
+      no: idx + 1,
+      item_code: modelName,
+      model_name: modelName,
+      item_name: itemName,
+      qty: qty,
+      buy_price: buyPrice,
+      sell_price: sellPrice,
+      margin: sellPrice - buyPrice,
+      remark: remarkInp ? remarkInp.value.trim() : "스타리온 직배송 요청"
     });
   });
 
+  const chkReplace = document.getElementById("chkReplaceErp");
+
   return {
-    vendor_name: document.getElementById("orderVendor").value.trim(),
-    order_no: document.getElementById("orderNo").value.trim(),
-    recipient_name: document.getElementById("recName").value.trim(),
-    recipient_phone: document.getElementById("recPhone").value.trim(),
-    recipient_address: document.getElementById("recAddress").value.trim(),
+    vendor_name: "스타리온",
+    customer_name: safeGetVal("orderCustomerName"),
+    store_name: safeGetVal("orderStore"),
+    delivery_date: safeGetVal("orderDeliveryDate"),
+    recipient_contact: safeGetVal("orderContact"),
+    recipient_address: safeGetVal("orderAddress"),
+    replace_erp: chkReplace ? chkReplace.checked : false,
     items: items
   };
 }
@@ -335,77 +448,305 @@ async function handleRegenerateOrder() {
   }
 
   const btn = document.getElementById("btnRegenerateOrder");
-  btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 반영 중...`;
-  btn.disabled = true;
+  const originalHtml = btn ? btn.innerHTML : "";
+  if (btn) {
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 재반영 중...`;
+    btn.disabled = true;
+  }
 
   try {
-    const res = await fetch("/api/create-order-and-erp", {
+    const data = await fetchJson("/api/create-order-and-erp", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(updatedOrder)
     });
-    const data = await res.json();
-    if (!res.ok || !data.success) throw new Error(data.detail || "재생성 실패");
 
     currentOrderFile = data.order_file;
-    document.getElementById("orderFileName").innerText = data.order_file;
+    safeSetText("orderFileName", data.order_file || "");
+    
+    // 메일 내용 동기화
+    if (data.mail_draft) {
+      safeSetVal("mailSubject", data.mail_draft.subject || "");
+      safeSetVal("mailBody", data.mail_draft.body || "");
+    }
+    
     loadErpSummary();
-    showToast("수정된 내용으로 발주서 및 ERP 리스트가 재반영되었습니다.", "success");
+    showToast("수정된 단가 및 내용으로 출고요청서 및 ERP 리스트가 재반영되었습니다!", "success");
   } catch (err) {
     showToast(`오류: ${err.message}`, "error");
   } finally {
-    btn.innerHTML = `<i class="fa-solid fa-arrows-rotate"></i> 엑셀 내용 재반영`;
-    btn.disabled = false;
+    if (btn) {
+      btn.innerHTML = originalHtml;
+      btn.disabled = false;
+    }
   }
 }
 
-// ----------------- STEP 2: Open Folder & Webmail (Edge) ----------------- //
+// ----------------- STEP 2: In-Memory Order Image Generator & Webmail ----------------- //
+
+function createOrderImageBlob(orderData) {
+  return new Promise((resolve) => {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    // 최적의 밸런스 사이즈 (너비 620px, 1x 정밀 렌더링)
+    const width = 620;
+    const items = orderData.items || [];
+    const numItems = Math.max(items.length, 1);
+    const rowHeight = 26;
+    const tableHeight = (numItems + 1) * rowHeight;
+    const height = 145 + tableHeight + 45;
+
+    canvas.width = width;
+    canvas.height = height;
+
+    // 1. Background
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, width, height);
+
+    // 2. Metadata (상단 정보)
+    ctx.textBaseline = "middle";
+    let y = 18;
+    const xStart = 14;
+
+    // 납품처명
+    ctx.font = "bold 12.5px '맑은 고딕', 'Malgun Gothic', sans-serif";
+    ctx.fillStyle = "#000000";
+    ctx.textAlign = "left";
+    ctx.fillText("납품처명:    ", xStart, y);
+    ctx.font = "normal 12.5px '맑은 고딕', 'Malgun Gothic', sans-serif";
+    ctx.fillText(orderData.store_name || orderData.recipient_name || "", xStart + 80, y);
+
+    y += 20;
+    // 배송요청일 (파란색 볼드)
+    ctx.font = "bold 12.5px '맑은 고딕', 'Malgun Gothic', sans-serif";
+    ctx.fillText("배송요청일 : ", xStart, y);
+    ctx.fillStyle = "#0033cc";
+    ctx.fillText(orderData.delivery_date || "", xStart + 80, y);
+    ctx.fillStyle = "#000000";
+
+    y += 20;
+    // 배송장소
+    ctx.font = "bold 12.5px '맑은 고딕', 'Malgun Gothic', sans-serif";
+    ctx.fillText("배송장소 :   ", xStart, y);
+    ctx.font = "normal 12.5px '맑은 고딕', 'Malgun Gothic', sans-serif";
+    ctx.fillText(orderData.recipient_address || "", xStart + 80, y);
+
+    y += 20;
+    // 담당자
+    ctx.font = "bold 12.5px '맑은 고딕', 'Malgun Gothic', sans-serif";
+    ctx.fillText("담당자 :     ", xStart, y);
+    ctx.font = "normal 12.5px '맑은 고딕', 'Malgun Gothic', sans-serif";
+    ctx.fillText(orderData.recipient_contact || "", xStart + 80, y);
+
+    y += 28;
+    ctx.font = "bold 12.5px '맑은 고딕', 'Malgun Gothic', sans-serif";
+    ctx.fillText("아래와 같이 기기류에 대해 견적하오니 검토 바랍니다.", xStart, y);
+
+    // 3. Table (품목 표 - 넉넉한 열 너비 분배)
+    y += 18;
+    const tableX = 14;
+    const tableW = width - 28;
+    const colWidths = [34, 285, 125, 38, 110];
+    const colsX = [tableX];
+    for (let w of colWidths) {
+      colsX.push(colsX[colsX.length - 1] + w);
+    }
+
+    // Header
+    ctx.fillStyle = "#a6a6a6";
+    ctx.fillRect(tableX, y, tableW, rowHeight);
+    ctx.strokeStyle = "#777777";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(tableX, y, tableW, rowHeight);
+
+    const headers = ["NO", "품목", "모델명", "수량", "비고"];
+    ctx.fillStyle = "#000000";
+    ctx.font = "bold 12px '맑은 고딕', 'Malgun Gothic', sans-serif";
+    ctx.textAlign = "center";
+
+    for (let i = 0; i < headers.length; i++) {
+      const cx = colsX[i] + colWidths[i] / 2;
+      ctx.fillText(headers[i], cx, y + rowHeight / 2);
+      ctx.beginPath();
+      ctx.moveTo(colsX[i], y);
+      ctx.lineTo(colsX[i], y + rowHeight);
+      ctx.stroke();
+    }
+
+    // Rows
+    let currY = y + rowHeight;
+    ctx.font = "normal 11.5px '맑은 고딕', 'Malgun Gothic', sans-serif";
+
+    for (let idx = 0; idx < items.length; idx++) {
+      const it = items[idx];
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(tableX, currY, tableW, rowHeight);
+      ctx.strokeRect(tableX, currY, tableW, rowHeight);
+
+      // NO
+      ctx.fillStyle = "#000000";
+      ctx.textAlign = "center";
+      ctx.fillText(String(idx + 1), colsX[0] + colWidths[0] / 2, currY + rowHeight / 2);
+
+      // 품목 (maxWidth 지정 및 클리핑 마스크로 다음 열 침범/겹침 100% 방지)
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(colsX[1] + 1, currY + 1, colWidths[1] - 2, rowHeight - 2);
+      ctx.clip();
+      ctx.fillStyle = "#000000";
+      ctx.textAlign = "left";
+      const itemMaxW = colWidths[1] - 12;
+      ctx.fillText(it.item_name || "", colsX[1] + 6, currY + rowHeight / 2, itemMaxW);
+      ctx.restore();
+
+      // 모델명 (클리핑 및 maxWidth)
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(colsX[2] + 1, currY + 1, colWidths[2] - 2, rowHeight - 2);
+      ctx.clip();
+      ctx.fillStyle = "#000000";
+      ctx.textAlign = "center";
+      const modelMaxW = colWidths[2] - 8;
+      ctx.fillText(it.model_name || it.item_code || "", colsX[2] + colWidths[2] / 2, currY + rowHeight / 2, modelMaxW);
+      ctx.restore();
+
+      // 수량
+      ctx.fillStyle = "#000000";
+      ctx.textAlign = "center";
+      ctx.fillText(String(it.qty || 1), colsX[3] + colWidths[3] / 2, currY + rowHeight / 2);
+
+      // Grid lines
+      for (let cx of colsX) {
+        ctx.beginPath();
+        ctx.moveTo(cx, currY);
+        ctx.lineTo(cx, currY + rowHeight);
+        ctx.stroke();
+      }
+
+      currY += rowHeight;
+    }
+
+    // 비고 Merged Area
+    const remarkText = (items.length > 0 && items[0].remark) ? items[0].remark : "스타리온 직배송 요청";
+    const remarkStartY = y + rowHeight;
+    const remarkHeight = currY - remarkStartY;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(colsX[4], remarkStartY, colWidths[4], remarkHeight);
+    ctx.strokeRect(colsX[4], remarkStartY, colWidths[4], remarkHeight);
+
+    ctx.fillStyle = "#000000";
+    ctx.textAlign = "center";
+    ctx.fillText(remarkText, colsX[4] + colWidths[4] / 2, remarkStartY + remarkHeight / 2, colWidths[4] - 8);
+
+    // 4. 특이사항 Box
+    currY += 9;
+    const boxH = 28;
+    ctx.strokeRect(tableX, currY, 130, boxH);
+    ctx.strokeRect(tableX + 130, currY, tableW - 130, boxH);
+
+    ctx.font = "bold 12px '맑은 고딕', 'Malgun Gothic', sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("특이사항", tableX + 65, currY + boxH / 2);
+
+    ctx.font = "normal 11.5px '맑은 고딕', 'Malgun Gothic', sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText(orderData.memo || "", tableX + 140, currY + boxH / 2, tableW - 150);
+
+    canvas.toBlob((blob) => {
+      resolve(blob);
+    }, "image/png");
+  });
+}
+
+async function handleCopyMailBody() {
+  const currentOrder = gatherCurrentOrderData();
+  const bodyText = safeGetVal("mailBody");
+
+  try {
+    if (navigator.clipboard && window.ClipboardItem) {
+      // 메모리에서 50% 축소 발주서 이미지를 실시간 렌더링하여 클립보드에 이미지로 복사
+      const imgBlob = await createOrderImageBlob(currentOrder);
+      if (imgBlob) {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "image/png": imgBlob
+          })
+        ]);
+        showToast("🖼️ 발주서 이미지가 클립보드에 복사되었습니다! 메일 본문에서 [Ctrl + V]를 누르세요.", "success");
+        return;
+      }
+    }
+  } catch (err) {
+    console.log("Image clipboard write fallback:", err);
+  }
+
+  // Fallback to text copy
+  if (navigator.clipboard && bodyText) {
+    await navigator.clipboard.writeText(bodyText);
+    showToast("📋 메일 본문이 클립보드에 복사되었습니다! (Ctrl+V)", "info");
+  }
+}
 
 async function handleOpenFolder() {
   try {
-    await fetch("/api/open-order-folder", { method: "POST" });
-    showToast("📂 윈도우 탐색기에서 발주서 폴더가 열렸습니다.", "info");
+    const filename = currentOrderFile || "";
+    await fetch(`/api/open-order-folder${filename ? `?filename=${encodeURIComponent(filename)}` : ""}`, { method: "POST" });
+    showToast("📂 윈도우 탐색기에서 출고요청서 엑셀 파일이 선택되었습니다.", "info");
   } catch (e) {
     showToast("폴더 열기 실패", "error");
   }
 }
 
 async function handleOpenWebmail() {
-  const toEmail = document.getElementById("mailTo").value.trim();
-  const subject = document.getElementById("mailSubject").value.trim();
-  const body = document.getElementById("mailBody").value.trim();
+  const to = safeGetVal("mailTo") || "hj.seo@starion.co.kr, gscheon@starion.co.kr, cth@ohjin.co.kr";
+  const subject = safeGetVal("mailSubject") || "";
+  const body = safeGetVal("mailBody") || "";
 
-  // 1. 발주서 폴더 탐색기로 열기
+  // 1. 발주서 파일이 선택된 상태로 윈도우 탐색기 열기 (드래그&드롭 즉시 준비)
   await handleOpenFolder();
 
-  // 2. 메일 본문 클립보드에 자동 복사
-  if (navigator.clipboard && body) {
-    try {
-      await navigator.clipboard.writeText(body);
-      showToast("📋 메일 본문이 클립보드에 복사되었습니다!", "info");
-    } catch (err) {
-      console.log("Clipboard write error:", err);
-    }
+  // 2. 발주서 이미지(50% 크기)를 메모리에서 실시간 생성하여 클립보드에 자동 복사
+  await handleCopyMailBody();
+
+  // 3. 네이버웍스 웹메일 메일쓰기 팝업 URL 생성 (to, subject, body 기본 자동 주입)
+  const encodedTo = encodeURIComponent(to);
+  const encodedSubject = encodeURIComponent(subject);
+  const encodedBody = encodeURIComponent(body);
+
+  const popupUrl = `https://mail.worksmobile.com/write/popup?to=${encodedTo}&subject=${encodedSubject}&body=${encodedBody}`;
+  
+  const popupWidth = 1080;
+  const popupHeight = 850;
+  const left = Math.max(0, (window.screen.width - popupWidth) / 2);
+  const top = Math.max(0, (window.screen.height - popupHeight) / 2);
+  
+  const popupWindow = window.open(
+    popupUrl,
+    "NaverWorksMailWrite",
+    `width=${popupWidth},height=${popupHeight},top=${top},left=${left},resizable=yes,scrollbars=yes,status=no,toolbar=no,menubar=no`
+  );
+
+  if (popupWindow) {
+    popupWindow.focus();
+    showToast("✉️ 네이버웍스 창이 열렸습니다! 기본 내용 확인 후 본문에서 [Ctrl + V]를 누르면 이미지가 들어갑니다!", "success");
+  } else {
+    window.open(popupUrl, "_blank");
+    showToast("🌐 새 탭으로 네이버웍스 화면이 열렸습니다. 본문에서 [Ctrl + V]를 누르세요!", "info");
   }
-
-  // 3. 네이버웍스 웹메일 작성 URL 새 탭으로 열기
-  // (Edge에 이미 로그인되어 있으므로 바로 작성 화면으로 이동)
-  const naverWorksUrl = `https://mail.worksmobile.com/`;
-  window.open(naverWorksUrl, "_blank");
-
-  showToast("🌐 Edge 네이버웍스 새 탭이 열렸습니다. 발주서 파일을 끌어다 첨부 후 발송하세요!", "success");
 }
 
 // ----------------- STEP 2: Send Mail via Naver Works (SMTP) ----------------- //
 
 async function handleSendMail() {
-  const toEmail = document.getElementById("mailTo").value.trim();
-  const subject = document.getElementById("mailSubject").value.trim();
-  const body = document.getElementById("mailBody").value.trim();
+  const toEmail = safeGetVal("mailTo");
+  const subject = safeGetVal("mailSubject");
+  const body = safeGetVal("mailBody");
 
   if (!toEmail) {
     showToast("받는 사람(거래처) 이메일 주소를 입력해주세요.", "error");
-    document.getElementById("mailTo").focus();
+    const mailToEl = document.getElementById("mailTo");
+    if (mailToEl) mailToEl.focus();
     return;
   }
   if (!currentOrderFile) {
@@ -414,12 +755,14 @@ async function handleSendMail() {
   }
 
   const btn = document.getElementById("btnSendMail");
-  const originalHtml = btn.innerHTML;
-  btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 네이버웍스 전송 중...`;
-  btn.disabled = true;
+  const originalHtml = btn ? btn.innerHTML : "";
+  if (btn) {
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 네이버웍스 전송 중...`;
+    btn.disabled = true;
+  }
 
   try {
-    const res = await fetch("/api/send-mail", {
+    const data = await fetchJson("/api/send-mail", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -430,41 +773,38 @@ async function handleSendMail() {
       })
     });
 
-    const data = await res.json();
-    if (!res.ok || !data.success) {
-      throw new Error(data.detail || data.message || "메일 발송에 실패했습니다.");
-    }
-
-    showToast(`✉️ ${data.message || '발주서 메일이 성공적으로 전송되었습니다!'}`, "success");
+    showToast(`✉️ ${data.message || '출고요청서 메일이 성공적으로 전송되었습니다!'}`, "success");
   } catch (err) {
     console.error(err);
     showToast(`메일 발송 실패: ${err.message}`, "error");
   } finally {
-    btn.innerHTML = originalHtml;
-    btn.disabled = false;
+    if (btn) {
+      btn.innerHTML = originalHtml;
+      btn.disabled = false;
+    }
   }
 }
 
 // ----------------- Modals & Settings ----------------- //
 
 function closeModal(modalId) {
-  document.getElementById(modalId).classList.remove("active");
+  const m = document.getElementById(modalId);
+  if (m) m.classList.remove("active");
 }
 
 async function openSettingsModal() {
   await loadConfig();
-  document.getElementById("modalSettings").classList.add("active");
+  const m = document.getElementById("modalSettings");
+  if (m) m.classList.add("active");
 }
 
 async function loadConfig() {
   try {
-    const res = await fetch("/api/config");
-    const cfg = await res.json();
-
+    const cfg = await fetchJson("/api/config");
     const nw = cfg.naverworks || {};
-    document.getElementById("nwSenderEmail").value = nw.sender_email || "";
-    document.getElementById("nwSenderPassword").value = nw.sender_password || "";
-    document.getElementById("nwSenderName").value = nw.sender_name || "";
+    safeSetVal("nwSenderEmail", nw.sender_email || "");
+    safeSetVal("nwSenderPassword", nw.sender_password || "");
+    safeSetVal("nwSenderName", nw.sender_name || "");
 
     renderVendorList(cfg.vendors || []);
   } catch (e) {
@@ -474,8 +814,9 @@ async function loadConfig() {
 
 function renderVendorList(vendors) {
   const container = document.getElementById("vendorList");
+  if (!container) return;
   container.innerHTML = "";
-  vendors.forEach((v, idx) => {
+  vendors.forEach((v) => {
     const row = document.createElement("div");
     row.className = "vendor-item-row";
     row.innerHTML = `
@@ -490,6 +831,7 @@ function renderVendorList(vendors) {
 
 function addVendorRow() {
   const container = document.getElementById("vendorList");
+  if (!container) return;
   const row = document.createElement("div");
   row.className = "vendor-item-row";
   row.innerHTML = `
@@ -504,37 +846,41 @@ function addVendorRow() {
 async function saveConfig() {
   const vendors = [];
   document.querySelectorAll("#vendorList .vendor-item-row").forEach(row => {
-    const name = row.querySelector(".v-name").value.trim();
-    const email = row.querySelector(".v-email").value.trim();
-    const phone = row.querySelector(".v-phone").value.trim();
+    const nameEl = row.querySelector(".v-name");
+    const emailEl = row.querySelector(".v-email");
+    const phoneEl = row.querySelector(".v-phone");
+
+    const name = nameEl ? nameEl.value.trim() : "";
+    const email = emailEl ? emailEl.value.trim() : "";
+    const phone = phoneEl ? phoneEl.value.trim() : "";
     if (name) {
       vendors.push({ name, email, phone });
     }
   });
 
+  const senderName = safeGetVal("nwSenderName") || "발주담당자";
   const configData = {
     naverworks: {
       smtp_server: "smtp.worksmobile.com",
       smtp_port: 465,
       use_ssl: true,
-      sender_email: document.getElementById("nwSenderEmail").value.trim(),
-      sender_password: document.getElementById("nwSenderPassword").value.trim(),
-      sender_name: document.getElementById("nwSenderName").value.trim()
+      sender_email: safeGetVal("nwSenderEmail"),
+      sender_password: safeGetVal("nwSenderPassword"),
+      sender_name: senderName
     },
     company_info: {
       company_name: "(주)바이브컴퍼니",
-      sender_name: document.getElementById("nwSenderName").value.trim() || "발주담당자"
+      sender_name: senderName
     },
     vendors: vendors
   };
 
   try {
-    const res = await fetch("/api/config", {
+    const data = await fetchJson("/api/config", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(configData)
     });
-    const data = await res.json();
     if (data.success) {
       showToast("설정이 성공적으로 저장되었습니다.", "success");
       closeModal("modalSettings");
@@ -545,84 +891,91 @@ async function saveConfig() {
 }
 
 async function handleTestMail() {
-  const testEmail = document.getElementById("testEmailInput").value.trim();
+  const testEmail = safeGetVal("testEmailInput");
   if (!testEmail) {
     showToast("테스트 메일을 수신할 이메일 주소를 입력해주세요.", "error");
     return;
   }
 
-  // 먼저 현재 폼의 네이버웍스 계정 정보 저장
   await saveConfig();
 
   const btn = document.getElementById("btnTestMail");
-  btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 전송 중...`;
-  btn.disabled = true;
+  const originalHtml = btn ? btn.innerHTML : "";
+  if (btn) {
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 전송 중...`;
+    btn.disabled = true;
+  }
 
   try {
-    const res = await fetch("/api/test-naverworks", {
+    const data = await fetchJson("/api/test-naverworks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ to_email: testEmail })
     });
-    const data = await res.json();
-    if (!res.ok || !data.success) throw new Error(data.detail || "테스트 실패");
 
     showToast(data.message, "success");
   } catch (err) {
     showToast(`테스트 실패: ${err.message}`, "error");
   } finally {
-    btn.innerHTML = `<i class="fa-solid fa-vial"></i> 테스트 전송`;
-    btn.disabled = false;
+    if (btn) {
+      btn.innerHTML = `<i class="fa-solid fa-vial"></i> 테스트 전송`;
+      btn.disabled = false;
+    }
   }
 }
 
-// ----------------- Price Master Modal ----------------- //
+// ----------------- Price Master & Template Modal ----------------- //
 
 async function openPriceMasterModal() {
-  document.getElementById("modalPriceMaster").classList.add("active");
+  const m = document.getElementById("modalPriceMaster");
+  if (m) m.classList.add("active");
   const tbody = document.getElementById("priceMasterTableBody");
-  tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted" style="padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> 단가표 불러오는 중...</td></tr>`;
+  if (!tbody) return;
+  tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted" style="padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> 단가표 불러오는 중...</td></tr>`;
 
   try {
-    const res = await fetch("/api/price-master");
-    const data = await res.json();
+    const data = await fetchJson("/api/price-master");
     if (data.success) {
       tbody.innerHTML = "";
+      if (!data.items || data.items.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted" style="padding: 20px;">등록된 단가 데이터가 없습니다.</td></tr>`;
+        return;
+      }
       data.items.forEach(item => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td class="font-bold text-primary">${escapeHtml(item.item_code)}</td>
+          <td class="font-bold text-primary font-mono">${escapeHtml(item.model_name || item.item_code)}</td>
+          <td class="text-muted font-mono text-sm">${escapeHtml(item.item_code || '')}</td>
           <td>${escapeHtml(item.item_name || '')}</td>
-          <td>${escapeHtml(item.spec || '')}</td>
-          <td class="text-right text-danger">${formatNumber(item.buy_price)}원</td>
-          <td class="text-right text-primary">${formatNumber(item.sell_price)}원</td>
+          <td class="text-sm">${escapeHtml(item.spec || '')}</td>
+          <td class="text-right font-bold text-danger">${formatNumber(item.buy_price)}원</td>
+          <td class="text-right font-bold text-primary">${formatNumber(item.sell_price)}원</td>
           <td class="text-muted text-sm">${escapeHtml(item.remark || '')}</td>
         `;
         tbody.appendChild(tr);
       });
     }
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger">단가표를 불러오지 못했습니다.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger">단가표를 불러오지 못했습니다.</td></tr>`;
   }
 }
 
-async function handlePriceMasterUpload(e) {
-  const file = e.target.files[0];
+async function handleOrderTemplateUpload(e) {
+  const file = e.target.files ? e.target.files[0] : null;
   if (!file) return;
 
   const formData = new FormData();
   formData.append("file", file);
 
   try {
-    showToast("단가표 파일 업로드 중...", "info");
-    const res = await fetch("/api/upload/price-master", {
+    showToast("발주서 양식 파일 업로드 중...", "info");
+    const res = await fetch("/api/upload/order-template", {
       method: "POST",
       body: formData
     });
     const data = await res.json();
     if (data.success) {
-      showToast("단가표가 성공적으로 업데이트되었습니다!", "success");
-      openPriceMasterModal();
+      showToast("발주서 템플릿(order_template.xlsx)이 성공적으로 교체되었습니다!", "success");
     } else {
       throw new Error(data.detail || "업로드 실패");
     }
@@ -633,42 +986,63 @@ async function handlePriceMasterUpload(e) {
   }
 }
 
-// ----------------- ERP Summary Modal ----------------- //
+// ----------------- ERP Summary Modal & Clear ----------------- //
 
 async function openErpModal() {
-  document.getElementById("modalErp").classList.add("active");
+  const m = document.getElementById("modalErp");
+  if (m) m.classList.add("active");
   const tbody = document.getElementById("erpRecentTableBody");
-  tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted" style="padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> 로딩 중...</td></tr>`;
+  if (tbody) tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted" style="padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> 로딩 중...</td></tr>`;
 
   try {
-    const res = await fetch("/api/erp-summary");
-    const data = await res.json();
+    const data = await fetchJson("/api/erp-summary");
 
-    document.getElementById("modalErpTotalRows").innerText = data.total_rows || 0;
+    const totalRows = data.total_rows || 0;
+    safeSetText("erpRowCount", totalRows);
+    safeSetText("modalErpTotalRows", totalRows);
 
+    if (!tbody) return;
     tbody.innerHTML = "";
     if (!data.recent_items || data.recent_items.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted" style="padding: 20px;">누적된 ERP 데이터가 없습니다.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted" style="padding: 20px;">저장된 ERP 발주 데이터가 없습니다.</td></tr>`;
       return;
     }
 
     data.recent_items.forEach(item => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td class="text-sm">${escapeHtml(item.date)}</td>
+        <td class="text-center text-sm">${escapeHtml(item.date)}</td>
         <td class="text-sm font-mono">${escapeHtml(item.order_no)}</td>
-        <td class="font-bold">${escapeHtml(item.vendor)}</td>
-        <td class="text-primary">${escapeHtml(item.code)}</td>
-        <td>${escapeHtml(item.name)}</td>
-        <td class="text-right">${formatNumber(item.qty)}</td>
+        <td class="font-bold">${escapeHtml(item.store || '')}</td>
+        <td>${escapeHtml(item.item_name || '')}</td>
+        <td class="text-primary font-mono font-bold">${escapeHtml(item.model_name || '')}</td>
+        <td class="text-center font-bold">${formatNumber(item.qty)}</td>
         <td class="text-right">${formatNumber(item.buy_price)}원</td>
-        <td class="text-right">${formatNumber(item.sell_price)}원</td>
-        <td class="text-right font-bold text-success">${formatNumber(item.margin)}원</td>
+        <td class="text-right text-primary font-bold">${formatNumber(item.sell_price)}원</td>
+        <td class="text-right text-success font-bold">${formatNumber(item.margin)}원</td>
       `;
       tbody.appendChild(tr);
     });
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger">데이터를 불러오지 못했습니다.</td></tr>`;
+    if (tbody) tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger">데이터를 불러오지 못했습니다.</td></tr>`;
+  }
+}
+
+async function handleClearErpList() {
+  if (!confirm("⚠️ 정말로 기존 ERP 누적 리스트의 모든 기록을 삭제하고 초기화하시겠습니까?")) {
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/clear-erp-list", { method: "POST" });
+    const data = await res.json();
+    if (data.success) {
+      showToast("ERP 누적 리스트가 성공적으로 초기화되었습니다.", "success");
+      openErpModal();
+      loadErpSummary();
+    }
+  } catch (err) {
+    showToast("ERP 초기화 실패", "error");
   }
 }
 
@@ -676,9 +1050,13 @@ async function loadErpSummary() {
   try {
     const res = await fetch("/api/erp-summary");
     const data = await res.json();
-    document.getElementById("erpRowCount").innerText = data.total_rows || 0;
+    const totalRows = data.total_rows || 0;
+    const countEl = document.getElementById("erpRowCount");
+    const modalCountEl = document.getElementById("modalErpTotalRows");
+    if (countEl) countEl.innerText = totalRows;
+    if (modalCountEl) modalCountEl.innerText = totalRows;
   } catch (e) {
-    console.error(e);
+    console.error("loadErpSummary error:", e);
   }
 }
 
@@ -687,7 +1065,7 @@ async function loadErpSummary() {
 function showToast(msg, type = "info") {
   const toast = document.getElementById("toast");
   toast.innerText = msg;
-  toast.className = `toast show ${type}`;
+  toast.className = `toast show toast-${type}`;
   setTimeout(() => {
     toast.className = "toast";
   }, 4000);
