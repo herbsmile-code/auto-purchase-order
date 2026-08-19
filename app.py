@@ -28,8 +28,53 @@ CONFIG_PATH = os.path.join(BASE_DIR, "config.json")
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 
 os.makedirs(TEMPLATES_DIR, exist_ok=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 os.makedirs(ORDERS_DIR, exist_ok=True)
 os.makedirs(STATIC_DIR, exist_ok=True)
+
+# .gitkeep 생성
+gitkeep_path = os.path.join(ORDERS_DIR, ".gitkeep")
+if not os.path.exists(gitkeep_path):
+    with open(gitkeep_path, "w") as f:
+        f.write("")
+
+def init_clean_erp_list():
+    """ERP 업로드 파일(erp_upload_list.xlsx)이 없을 경우 16개 헤더를 가진 깔끔한 초기 파일을 생성합니다."""
+    erp_file_path = os.path.join(OUTPUT_DIR, "erp_upload_list.xlsx")
+    if not os.path.exists(erp_file_path):
+        now = datetime.date.today()
+        tab_name = f"{str(now.year)[-2:]}.{now.month}"
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = tab_name
+        
+        headers = [
+            "발주일자", "배송요청일", "거래처", "거래처명", "납품처(매장명)",
+            "품명", "모델명", "수량", "매입단가", "매입합계",
+            "수주단가", "수주합계", "예상마진", "배송방법", "현장담당자", "배송장소"
+        ]
+        col_widths = {
+            'A': 13.0, 'B': 15.0, 'C': 8.38, 'D': 13.0, 'E': 20.0,
+            'F': 35.0, 'G': 18.0, 'H': 8.0,  'I': 13.0, 'J': 14.0,
+            'K': 13.0, 'L': 14.0, 'M': 14.0, 'N': 20.0, 'O': 20.0, 'P': 35.0
+        }
+        
+        header_fill = PatternFill(start_color="1E3A8A", end_color="1E3A8A", fill_type="solid")
+        header_font = Font(name="맑은 고딕", size=11, bold=True, color="FFFFFF")
+        
+        for col_num in range(1, len(headers) + 1):
+            cell = ws.cell(row=1, column=col_num, value=headers[col_num - 1])
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+        ws.row_dimensions[1].height = 26
+
+        for col_letter, width in col_widths.items():
+            ws.column_dimensions[col_letter].width = width
+            
+        wb.save(erp_file_path)
+
+init_clean_erp_list()
 
 app = FastAPI(title="카카오톡 주문 원버튼 발주서 및 ERP 연동 시스템")
 

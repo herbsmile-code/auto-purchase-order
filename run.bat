@@ -1,9 +1,29 @@
 @echo off
 title Auto Purchase Order Server
+chcp 949 >nul
+cls
 
 echo ========================================================
-echo   Auto Purchase Order Automation System
+echo   [Security] Auto Purchase Order System (v1.0)
 echo ========================================================
+echo.
+
+:AUTH_LOOP
+set "INPUT_PW="
+set /p "INPUT_PW=Password: "
+
+if "%INPUT_PW%"=="0708" goto :AUTH_SUCCESS
+if "%INPUT_PW%"==" 0708" goto :AUTH_SUCCESS
+if "%INPUT_PW%"=="0708 " goto :AUTH_SUCCESS
+
+echo.
+echo [Error] Incorrect Password. Please try again.
+echo.
+goto :AUTH_LOOP
+
+:AUTH_SUCCESS
+echo.
+echo [Success] Password verified! Starting server...
 echo.
 
 set "UV_BIN="
@@ -18,7 +38,7 @@ if "%UV_BIN%"=="" if exist "%APPDATA%\uv\uv.exe" set "UV_BIN=%APPDATA%\uv\uv.exe
 
 if not "%UV_BIN%"=="" goto :START_UV
 
-echo [Notice] Downloading and installing uv...
+echo [Notice] Installing uv package manager...
 powershell -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; irm https://astral.sh/uv/install.ps1 | iex"
 
 if exist "%USERPROFILE%\.cargo\bin\uv.exe" set "UV_BIN=%USERPROFILE%\.cargo\bin\uv.exe"
@@ -31,24 +51,17 @@ if not "%UV_BIN%"=="" goto :START_UV
 goto :START_PYTHON
 
 :START_UV
-echo [1/3] Synchronizing dependencies with uv...
+echo [1/2] Syncing packages...
 "%UV_BIN%" sync
 if %errorlevel% neq 0 (
-    echo [Warning] uv sync failed. Falling back to Python...
+    echo [Warning] uv sync failed. Falling back to python...
     goto :START_PYTHON
 )
 
 echo.
-echo [2/3] Checking template files...
-if not exist "templates\price_master.xlsx" (
-    "%UV_BIN%" run python init_templates.py
-)
-
-echo.
-echo [3/3] Starting web server...
+echo [2/2] Starting Web Server...
 echo ========================================================
 echo   Web URL: http://127.0.0.1:8000
-echo   (Close this window to stop the server)
 echo ========================================================
 echo.
 start http://127.0.0.1:8000
@@ -57,19 +70,15 @@ goto :DONE
 
 :START_PYTHON
 echo.
-echo [Notice] Attempting execution with standard Python...
+echo [Notice] Running with system Python...
 where python >nul 2>&1
 if errorlevel 1 goto :NO_PYTHON
 
-echo [1/3] Checking packages...
+echo [1/2] Installing requirements...
 python -m pip install -r requirements.txt --quiet
 
-echo [2/3] Checking templates...
-if not exist "templates\price_master.xlsx" (
-    python init_templates.py
-)
-
-echo [3/3] Starting web server...
+echo.
+echo [2/2] Starting Web Server...
 echo ========================================================
 echo   Web URL: http://127.0.0.1:8000
 echo ========================================================
@@ -81,13 +90,11 @@ goto :DONE
 :NO_PYTHON
 echo.
 echo ========================================================
-echo [Error] Neither uv nor Python was found.
-echo Please install uv from https://docs.astral.sh/uv/
-echo or Python from https://python.org
+echo [Error] Python or uv is not installed.
 echo ========================================================
 echo.
 
 :DONE
 echo.
-echo Program ended.
+echo Server stopped.
 pause
